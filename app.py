@@ -349,7 +349,7 @@ def generate_plan(profile, df, bloom, index, col_max, model):
 
             _prompt_options = SLOT_PROMPT_OPTIONS.get(slot, ["healthy nutritious meal"])
             _prompt = _prompt_options[(day - 1) % len(_prompt_options)]
-            qvec = slot_query_vec(_prompt, model, col_max, meal_targets)
+            qvec = slot_query_vec(_prompt, model, col_max, meal_tgt)
 
             pool = safe_df[
                 (safe_df["meal_slot"].isin([slot,"any"])) &
