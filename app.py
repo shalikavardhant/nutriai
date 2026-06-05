@@ -246,7 +246,7 @@ def clinical_filter(df, conditions):
     if "T2D" in conditions:
         m = (df["gi_estimate"]<=70)&(df["total_sugars_g"]<=15)
         [lg(r.fdc_id,"High GI or sugar") for _,r in df[~m].iterrows()]; mask &= m
-     if "Hypertension" in conditions:
+    if "Hypertension" in conditions:
         # DASH: cap sodium at 500mg per food item (so daily total stays ≤1500mg across 3 meals)
         m = df["sodium_mg"]<=500
         [lg(r.fdc_id,f"High sodium ({r.sodium_mg:.0f}mg) — DASH limit") for _,r in df[~m].iterrows()]; mask &= m
