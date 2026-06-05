@@ -341,7 +341,9 @@ def generate_plan(profile, df, bloom, index, col_max, model):
             meal_tgt  = {k:v*SLOT_CAL_SPLIT[slot] for k,v in remaining.items()}
             meal_tgt["calories_kcal"] = max(meal_tgt.get("calories_kcal",0), cal_target*SLOT_CAL_SPLIT[slot])
 
-            qvec = slot_query_vec(get_slot_prompt(slot, day), model, col_max, meal_targets)
+            _prompt_options = SLOT_PROMPT_OPTIONS.get(slot, ["healthy nutritious meal"])
+            _prompt = _prompt_options[(day - 1) % len(_prompt_options)]
+            qvec = slot_query_vec(_prompt, model, col_max, meal_targets)
 
             pool = safe_df[
                 (safe_df["meal_slot"].isin([slot,"any"])) &
