@@ -1,8 +1,10 @@
 streamlit>=1.35.0
 faiss-cpu>=1.8.0
-sentence-transformers>=2.7.0
 pandas>=2.0.0
 numpy>=1.26.0
 pybloom-live>=4.0.0
 fpdf2>=2.7.9
 sqlalchemy>=2.0.0
+torch>=2.0.0
+sentence-transformers>=2.7.0
+transformers>=4.30.0

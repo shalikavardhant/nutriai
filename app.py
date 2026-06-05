@@ -15,6 +15,8 @@ import numpy as np
 import pandas as pd
 import faiss
 from pybloom_live import BloomFilter
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from sentence_transformers import SentenceTransformer
 from fpdf import FPDF
 import io
