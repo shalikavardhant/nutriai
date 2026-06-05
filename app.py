@@ -131,6 +131,37 @@ DAILY_RDA = {
     "iron_mg": 18,         "vitamin_d_ug": 15, "vitamin_b12_ug": 2.4,
     "zinc_mg": 8,
 }
+ 
+def get_rda(age, sex, cal_target):
+    """Return RDA values adjusted for age, sex, and calorie target."""
+    rda = DAILY_RDA.copy()
+    # Calorie scaling
+    rda["calories_kcal"] = cal_target
+    rda["carbs_g"]  = round(cal_target * 0.50 / 4)   # 50% of cals from carbs
+    rda["fat_g"]    = round(cal_target * 0.30 / 9)   # 30% of cals from fat
+    rda["protein_g"]= round(cal_target * 0.20 / 4)   # 20% of cals from protein
+ 
+    # Iron: females 19-50 need 18mg, males and older females need 8mg
+    if sex == "Female" and 19 <= age <= 50:
+        rda["iron_mg"] = 18
+    else:
+        rda["iron_mg"] = 8
+ 
+    # Calcium: 51+ need 1200mg
+    if age >= 51:
+        rda["calcium_mg"] = 1200
+ 
+    # Vitamin D: 70+ need 20ug
+    if age >= 70:
+        rda["vitamin_d_ug"] = 20
+ 
+    # Fibre: males need more
+    if sex == "Male":
+        rda["fiber_g"] = 38 if age <= 50 else 30
+    else:
+        rda["fiber_g"] = 25 if age <= 50 else 21
+ 
+    return rda
 
 SLOT_PROMPT_OPTIONS = {
     "breakfast": [
@@ -215,9 +246,10 @@ def clinical_filter(df, conditions):
     if "T2D" in conditions:
         m = (df["gi_estimate"]<=70)&(df["total_sugars_g"]<=15)
         [lg(r.fdc_id,"High GI or sugar") for _,r in df[~m].iterrows()]; mask &= m
-    if "Hypertension" in conditions:
-        m = df["sodium_mg"]<=600
-        [lg(r.fdc_id,"High sodium (DASH limit)") for _,r in df[~m].iterrows()]; mask &= m
+     if "Hypertension" in conditions:
+        # DASH: cap sodium at 500mg per food item (so daily total stays ≤1500mg across 3 meals)
+        m = df["sodium_mg"]<=500
+        [lg(r.fdc_id,f"High sodium ({r.sodium_mg:.0f}mg) — DASH limit") for _,r in df[~m].iterrows()]; mask &= m
     return df[mask].copy(), log
 
 def diet_filter(df, diet):
@@ -333,7 +365,7 @@ def generate_plan(profile, df, bloom, index, col_max, model):
 
     safe_ids = set(safe_df["fdc_id"].astype(int).tolist())
     cal_target = profile.get("calories", 2000)
-    daily = {k: v*(cal_target/2000) for k,v in DAILY_RDA.items()}
+    daily = get_rda(profile.get("age", 30), profile.get("sex", "Female"), cal_target)
 
     div  = Diversity()
     plan = []
@@ -399,7 +431,7 @@ def generate_plan(profile, df, bloom, index, col_max, model):
     return plan, exc_log, elapsed, div.score()
 
 # ── Nutrient analysis ─────────────────────────────────────────
-def analyse_plan(plan, cal_target):
+def analyse_plan(plan, cal_target, age=30, sex="Female"):
     days = {}
     for m in plan:
         d = m["day"]
@@ -407,9 +439,18 @@ def analyse_plan(plan, cal_target):
             days[d] = {k:0.0 for k in ["cal","prot","carbs","fat","fiber","ca","fe","vd","b12","zn"]}
         for k in days[d]: days[d][k] += m.get(k,0)
 
+    _rda = get_rda(age, sex, cal_target)
     rda = {
-        "cal": cal_target, "prot":50, "carbs":275, "fat":78, "fiber":28,
-        "ca":1000, "fe":18, "vd":15, "b12":2.4, "zn":8
+        "cal":   _rda["calories_kcal"],
+        "prot":  _rda["protein_g"],
+        "carbs": _rda["carbs_g"],
+        "fat":   _rda["fat_g"],
+        "fiber": _rda["fiber_g"],
+        "ca":    _rda["calcium_mg"],
+        "fe":    _rda["iron_mg"],
+        "vd":    _rda["vitamin_d_ug"],
+        "b12":   _rda["vitamin_b12_ug"],
+        "zn":    _rda["zinc_mg"],
     }
     labels = {
         "cal":"Calories (kcal)","prot":"Protein (g)","carbs":"Carbs (g)",
@@ -495,6 +536,8 @@ if generate_btn:
         "conditions": conditions,
         "diet":       diet if diet != "None" else "none",
         "calories":   cal_target,
+        "age":        age,
+        "sex":        sex,
     }
 
     with st.spinner("Building your personalised plan…"):
@@ -567,7 +610,11 @@ if "plan" in st.session_state:
 
     # ── TAB 2: Nutrient Analysis ──────────────────────────────
     with tab2:
-        days_data, rda, labels = analyse_plan(plan, cal_target)
+        days_data, rda, labels = analyse_plan(
+            plan, cal_target,
+            age=st.session_state["profile"].get("age", 30),
+            sex=st.session_state["profile"].get("sex", "Female")
+        )
 
         st.markdown("<div class='section-header'>Daily Nutrient Totals vs RDA</div>", unsafe_allow_html=True)
 
