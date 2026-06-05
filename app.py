@@ -131,7 +131,6 @@ DAILY_RDA = {
     "zinc_mg": 8,
 }
 
-import random
 SLOT_PROMPT_OPTIONS = {
     "breakfast": [
         "eggs scrambled omelette frittata protein morning",
