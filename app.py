@@ -202,6 +202,10 @@ def diet_filter(df, diet):
     if   diet=="Vegan":        m=df["is_vegan"]==1
     elif diet=="Vegetarian":   m=df["is_vegetarian"]==1
     elif diet=="Pescatarian":  m=df["is_pescatarian"]==1
+    elif diet=="Eggs":         m=df["description"].str.lower().str.contains("egg|omelet|frittata|quiche", na=False)
+    elif diet=="Red Meat":     m=df["description"].str.lower().str.contains("beef|steak|lamb|pork|veal|bison|venison", na=False)
+    elif diet=="Dairy":        m=df["description"].str.lower().str.contains("milk|cheese|yogurt|butter|cream|whey", na=False)
+    elif diet=="Protein":      m=df["protein_g"] >= 15
     else: return df.copy(), log
     [lg(r.fdc_id,"Not suitable for diet") for _,r in df[~m].iterrows()]
     return df[m].copy(), log
@@ -427,10 +431,10 @@ st.markdown("<p style='color:#666;margin-top:0;margin-bottom:1.5rem;font-size:1r
 with st.sidebar:
     st.markdown("### Your Profile")
 
-    name_input = st.text_input("Name (optional)", placeholder="e.g. Priya")
-    age        = st.slider("Age", 18, 80, 35)
+    name_input = st.text_input("Name (optional)", placeholder="e.g. Doe")
+    age        = st.slider("Age", 18, 80, 18)
     sex        = st.selectbox("Sex", ["Female","Male","Other"])
-    weight_kg  = st.number_input("Weight (kg)", 40, 200, 65)
+    weight_kg  = st.number_input("Weight (kg)", 40, 200, 40)
     cal_target = st.slider("Daily calorie target (kcal)", 1400, 3000, 2000, step=50)
 
     st.markdown("---")
@@ -439,11 +443,11 @@ with st.sidebar:
         ["IBS","GERD","T2D","Hypertension"], default=[])
 
     st.markdown("**Dietary preference**")
-    diet = st.selectbox("Diet type", ["None","Vegan","Vegetarian","Pescatarian"])
+    diet = st.selectbox("Diet type", ["None","Protein""Vegan","Vegetarian","Pescatarian","Eggs","Red Meat","Dairy"])
 
     st.markdown("**Allergens to exclude**")
     allergens = st.multiselect("Select allergens",
-        ["gluten","dairy","nuts","shellfish","soy","eggs","peanuts","fish","tree_nuts"],
+        ["Gluten","Dairy","Nuts","Shellfish","Soy","Eggs","Peanuts","Fish","Tree Nuts","Red Meat"],
         default=[])
 
     st.markdown("---")
