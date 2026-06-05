@@ -1,4 +1,4 @@
-# ============================================================
+Ï# ============================================================
 # NutriAI — app.py  (Day 4: Streamlit UI)
 # BAX-423 Final Project | UC Davis GSM
 # ============================================================
@@ -131,11 +131,32 @@ DAILY_RDA = {
     "zinc_mg": 8,
 }
 
-SLOT_PROMPTS = {
-    "breakfast": "healthy breakfast cereal eggs oats yogurt fruit toast nutritious morning",
-    "lunch":     "healthy lunch salad sandwich soup grain bowl nutritious midday meal",
-    "dinner":    "healthy dinner protein vegetables rice beans fish chicken evening meal",
+import random
+SLOT_PROMPT_OPTIONS = {
+    "breakfast": [
+        "eggs scrambled omelette frittata protein morning",
+        "oats porridge cereal granola fruit yogurt morning",
+        "bread toast whole grain muffin baked breakfast",
+        "smoothie fruit juice dairy milk morning drink",
+    ],
+    "lunch": [
+        "salad vegetables greens legumes beans healthy lunch",
+        "soup stew broth vegetable chicken lunch warm",
+        "sandwich wrap grain rice bowl midday meal",
+        "fish seafood tuna salmon light healthy lunch",
+    ],
+    "dinner": [
+        "beef steak lamb red meat protein evening dinner",
+        "chicken poultry turkey baked roasted dinner",
+        "fish salmon cod tilapia seafood evening meal",
+        "lentils beans legumes vegan plant protein dinner",
+        "pasta rice grain vegetable casserole dinner",
+    ],
 }
+
+def get_slot_prompt(slot, day):
+    options = SLOT_PROMPT_OPTIONS.get(slot, ["healthy nutritious meal"])
+    return options[(day - 1) % len(options)]
 
 SLOT_CAL_MIN   = {"breakfast": 200, "lunch": 300, "dinner": 300}
 SLOT_CAL_SPLIT = {"breakfast": 0.25, "lunch": 0.35, "dinner": 0.35}
@@ -211,8 +232,7 @@ def diet_filter(df, diet):
     return df[m].copy(), log
 
 # ── FAISS retrieval ───────────────────────────────────────────
-def slot_query_vec(slot, model, col_max, meal_targets):
-    prompt   = SLOT_PROMPTS.get(slot,"healthy nutritious meal")
+def slot_query_vec(prompt, model, col_max, meal_targets):
     text_vec = model.encode([prompt])[0].astype(np.float32)
     nut_vec  = np.zeros(len(NUTRIENT_COLS), dtype=np.float32)
     for i,col in enumerate(NUTRIENT_COLS):
@@ -266,19 +286,25 @@ class Diversity:
         self.used   = set()
         self.hist   = {}
     def pick(self, ranked, slot):
-        recent = self.hist.get(slot,[])[-2:]
-        for _,row in ranked.iterrows():
+        # Block any category already used in this slot (whole week)
+        used_cats = set(self.hist.get(slot, []))
+        # First pass: find food from a completely new category
+        for _, row in ranked.iterrows():
             fid = int(row["fdc_id"])
             cat = str(row["category"])
             if fid in self.used: continue
-            if cat in recent and len(ranked)>20: continue
-            self.used.add(fid)
-            self.hist.setdefault(slot,[]).append(cat)
-            return row
-        for _,row in ranked.iterrows():
+            if cat not in used_cats:
+                self.used.add(fid)
+                self.hist.setdefault(slot, []).append(cat)
+                return row
+        # Second pass: allow repeated category if no new ones available
+        for _, row in ranked.iterrows():
             fid = int(row["fdc_id"])
             if fid not in self.used:
-                self.used.add(fid); return row
+                cat = str(row["category"])
+                self.used.add(fid)
+                self.hist.setdefault(slot, []).append(cat)
+                return row
         return None
     def score(self):
         cats = [c for cs in self.hist.values() for c in cs]
@@ -316,7 +342,7 @@ def generate_plan(profile, df, bloom, index, col_max, model):
             meal_tgt  = {k:v*SLOT_CAL_SPLIT[slot] for k,v in remaining.items()}
             meal_tgt["calories_kcal"] = max(meal_tgt.get("calories_kcal",0), cal_target*SLOT_CAL_SPLIT[slot])
 
-            qvec = slot_query_vec(slot, model, col_max, meal_tgt)
+            qvec = slot_query_vec(get_slot_prompt(slot, day), model, col_max, meal_targets)
 
             pool = safe_df[
                 (safe_df["meal_slot"].isin([slot,"any"])) &
