@@ -7,3 +7,4 @@ numpy>=1.26.0
 pybloom-live>=4.0.0
 fpdf2>=2.7.9
 sqlalchemy>=2.0.0
+torchvision==0.17.2
