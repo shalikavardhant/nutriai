@@ -15,9 +15,8 @@ import numpy as np
 import pandas as pd
 import faiss
 from pybloom_live import BloomFilter
-import os
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.preprocessing import normalize
 from fpdf import FPDF
 import io
 import os
@@ -192,8 +191,11 @@ def load_assets():
 
     index   = faiss.read_index("data/nutriai.index")
     col_max = np.load("data/nutrient_col_max.npy")
-    model   = SentenceTransformer("all-MiniLM-L6-v2")
-    return df, bloom, index, col_max, model
+
+    # TF-IDF vectorizer as lightweight replacement for sentence-transformers
+    vectorizer = TfidfVectorizer(max_features=384, stop_words="english")
+    vectorizer.fit(df["description"].fillna("").tolist())
+    return df, bloom, index, col_max, vectorizer
 
 # ── Filter helpers ────────────────────────────────────────────
 def bloom_exclude(fdc_ids, allergens, bloom):
@@ -234,7 +236,9 @@ def diet_filter(df, diet):
 
 # ── FAISS retrieval ───────────────────────────────────────────
 def slot_query_vec(prompt, model, col_max, meal_targets):
-    text_vec = model.encode([prompt])[0].astype(np.float32)
+    # model is now a TfidfVectorizer
+    text_vec = model.transform([prompt]).toarray()[0].astype(np.float32)
+    text_vec = normalize(text_vec.reshape(1,-1))[0]
     nut_vec  = np.zeros(len(NUTRIENT_COLS), dtype=np.float32)
     for i,col in enumerate(NUTRIENT_COLS):
         nut_vec[i] = meal_targets.get(col,0)/(col_max[i] if col_max[i]>0 else 1)
