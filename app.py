@@ -261,7 +261,7 @@ def diet_filter(df, diet):
     elif diet=="Eggs":         m=df["description"].str.lower().str.contains("egg|omelet|frittata|quiche", na=False)
     elif diet=="Red Meat":     m=df["description"].str.lower().str.contains("beef|steak|lamb|pork|veal|bison|venison", na=False)
     elif diet=="Dairy":        m=df["description"].str.lower().str.contains("milk|cheese|yogurt|butter|cream|whey", na=False)
-    elif diet=="Protein":      m=df["protein_g"] >= 15
+    elif diet=="High Protein": m=df["protein_g"] >= 15
     else: return df.copy(), log
     [lg(r.fdc_id,"Not suitable for diet") for _,r in df[~m].iterrows()]
     return df[m].copy(), log
@@ -517,7 +517,7 @@ with st.sidebar:
         ["IBS","GERD","T2D","Hypertension"], default=[])
 
     st.markdown("**Dietary preference**")
-    diet = st.selectbox("Diet type", ["None","Protein","Vegan","Vegetarian","Pescatarian","Eggs","Red Meat","Dairy"])
+    diet = st.selectbox("Diet type", ["None","Vegan","Vegetarian","Pescatarian","Eggs","Red Meat","Dairy","High Protein"])
 
     st.markdown("**Allergens to exclude**")
     allergens = st.multiselect("Select allergens",
