@@ -1,5 +1,5 @@
 # ============================================================
-# NutriAI — app.py  (Day 4: Streamlit UI)
+# NutriAI — app.py
 # BAX-423 Final Project | UC Davis GSM
 # ============================================================
 # Run locally:  streamlit run app.py
@@ -484,7 +484,7 @@ with st.sidebar:
         default=[])
 
     st.markdown("---")
-    generate_btn = st.button("🚀 Generate My Plan", use_container_width=True)
+    generate_btn = st.button("Generate My Plan", use_container_width=True)
 
 # ── Main area ─────────────────────────────────────────────────
 df_foods, bloom, index, col_max, model = load_assets()
@@ -528,7 +528,7 @@ if "plan" in st.session_state:
                 unsafe_allow_html=True)
 
     # ── Tabs ──────────────────────────────────────────────────
-    tab1, tab2, tab3 = st.tabs(["📅 7-Day Plan", "📊 Nutrient Analysis", "❌ Why Excluded"])
+    tab1, tab2, tab3 = st.tabs(["|7-Day Plan|", "|Nutrient Analysis|", "|Why Excluded|"])
 
     # ── TAB 1: Meal Plan ──────────────────────────────────────
     with tab1:
