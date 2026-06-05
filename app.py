@@ -443,7 +443,7 @@ with st.sidebar:
         ["IBS","GERD","T2D","Hypertension"], default=[])
 
     st.markdown("**Dietary preference**")
-    diet = st.selectbox("Diet type", ["None","Protein""Vegan","Vegetarian","Pescatarian","Eggs","Red Meat","Dairy"])
+    diet = st.selectbox("Diet type", ["None","Protein","Vegan","Vegetarian","Pescatarian","Eggs","Red Meat","Dairy"])
 
     st.markdown("**Allergens to exclude**")
     allergens = st.multiselect("Select allergens",
